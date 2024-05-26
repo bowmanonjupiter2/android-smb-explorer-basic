@@ -33,8 +33,9 @@ class SMBFileListViewModel : ViewModel() {
     private val _uploadResult = MutableLiveData<String>(null)
     val uploadResult: LiveData<String?> get() = _uploadResult
 
-    fun uploadSMBFile(local: File) {
+    fun uploadSMBFile(local: File, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
+            var success: Boolean
             withContext(Dispatchers.IO) {
                 val baseContext: CIFSContext = SingletonContext.getInstance()
                 val authContext: CIFSContext =
@@ -42,6 +43,8 @@ class SMBFileListViewModel : ViewModel() {
                 val smbServerUploadUrl = smbServerUrl.value + File.separator + local.name
 
                 var smbFile: SmbFile? = null
+
+
 
                 try {
                     _isProcessing.postValue(true)
@@ -58,20 +61,27 @@ class SMBFileListViewModel : ViewModel() {
                     _isProcessing.postValue(false)
                     _uploadResult.postValue("Upload Successful.")
 
+                    success = true
                     refreshSMBFiles()
 
                 } catch (mal: MalformedURLException) {
                     _isProcessing.postValue(false)
                     _uploadResult.postValue(mal.message)
+                    success = false
                 } catch (smb: SmbException) {
                     _isProcessing.postValue(false)
                     _uploadResult.postValue(smb.message)
+                    success = false
                 } catch (t: Throwable) {
                     _isProcessing.postValue(false)
                     _uploadResult.postValue(t.message)
+                    success = false
                 } finally {
                     smbFile?.close()
                 }
+            }
+            withContext(Dispatchers.Main) {
+                callback(success)
             }
         }
     }

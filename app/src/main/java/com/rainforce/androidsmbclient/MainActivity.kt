@@ -110,7 +110,17 @@ fun MainScreen() {
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             val filePath: String? = uri?.let { getFilePathFromUri(context, it) }
-            filePath?.let { viewModel.uploadSMBFile(File(filePath)) }
+            Toast.makeText(context, "Uploading $filePath", Toast.LENGTH_SHORT).show()
+            filePath?.let {
+                viewModel.uploadSMBFile(File(filePath)) { result ->
+                    if (result) {
+                        Toast.makeText(context, "$filePath uploaded.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Failed to upload  $filePath", Toast.LENGTH_SHORT)
+                            .show()
+                    }
+                }
+            }
         }
 
     LaunchedEffect(Unit) {
@@ -140,7 +150,7 @@ fun MainScreen() {
                             text = it,
                             style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
                             modifier = Modifier
-                                .padding(bottom = 8.dp)
+                                .padding(bottom = 4.dp)
                                 .align(Alignment.CenterVertically)
                         )
                     }
@@ -151,7 +161,7 @@ fun MainScreen() {
                             viewModel.refreshSMBFiles()
                         },
                         modifier = Modifier
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = 4.dp)
                             .align(Alignment.CenterVertically)
                     ) {
                         Icon(
@@ -159,10 +169,11 @@ fun MainScreen() {
                             contentDescription = "Refresh"
                         )
                     }
+
                     IconButton(
                         onClick = { launcher.launch(arrayOf("*/*")) },
                         modifier = Modifier
-                            .padding(bottom = 8.dp)
+                            .padding(bottom = 4.dp)
                             .align(Alignment.CenterVertically)
                     ) {
                         Icon(
@@ -171,6 +182,7 @@ fun MainScreen() {
                         )
                     }
                 }
+
                 LazyColumn {
                     items(items.value) { file ->
                         SMBFileEntryRow(item = file)
@@ -200,14 +212,27 @@ fun SMBFileEntryRow(item: SmbFile) {
         IconButton(
             onClick = {
 
-                Toast.makeText(context, "Downloading " + item.uncPath.toString().trimStart('\\'), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Downloading " + item.uncPath.toString().trimStart('\\'),
+                    Toast.LENGTH_SHORT
+                ).show()
 
                 downloadFile(item) { result ->
 
                     if (result) {
-                        Toast.makeText(context, "Downloading " + item.uncPath.toString().trimStart('\\') + " downloaded.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            item.uncPath.toString()
+                                .trimStart('\\') + " downloaded.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     } else {
-                        Toast.makeText(context, "Failed to download  " + item.uncPath.toString().trimStart('\\'), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Failed to download  " + item.uncPath.toString().trimStart('\\'),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 }
             },
