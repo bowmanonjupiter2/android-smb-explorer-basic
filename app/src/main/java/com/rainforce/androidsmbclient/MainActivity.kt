@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -145,13 +146,6 @@ fun MainScreen() {
                     }
                 }
                 Row {
-//                    Text(
-//                        text = "Remote Files",
-//                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-//                        modifier = Modifier
-//                            .padding(bottom = 8.dp)
-//                            .align(Alignment.CenterVertically)
-//                    )
                     IconButton(
                         onClick = {
                             viewModel.refreshSMBFiles()
@@ -190,8 +184,7 @@ fun MainScreen() {
 @Composable
 fun SMBFileEntryRow(item: SmbFile) {
 
-    var downloadStatus by remember { mutableStateOf("Download") }
-
+    val context = LocalContext.current
 
     Row(
         modifier = Modifier
@@ -206,13 +199,19 @@ fun SMBFileEntryRow(item: SmbFile) {
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = {
-                downloadStatus = "Downloading..."
+
+                Toast.makeText(context, "Downloading " + item.uncPath.toString().trimStart('\\'), Toast.LENGTH_SHORT).show()
+
                 downloadFile(item) { result ->
-                    downloadStatus = if (result) "Downloaded" else "Download Failed"
+
+                    if (result) {
+                        Toast.makeText(context, "Downloading " + item.uncPath.toString().trimStart('\\') + " downloaded.", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Failed to download  " + item.uncPath.toString().trimStart('\\'), Toast.LENGTH_SHORT).show()
+                    }
                 }
             },
             modifier = Modifier
-//                    .padding(bottom = 8.dp)
                 .align(Alignment.CenterVertically)
         ) {
             Icon(
@@ -221,51 +220,6 @@ fun SMBFileEntryRow(item: SmbFile) {
             )
         }
     }
-
-//    Card(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .padding(4.dp)
-//    ) {
-//        Row(
-//            modifier = Modifier
-//                .padding(2.dp)
-//                .fillMaxWidth(),
-//            verticalAlignment = Alignment.CenterVertically
-//        ) {
-//            Text(
-//                text = item.uncPath.toString().trimStart('\\'),
-//                style = MaterialTheme.typography.bodyMedium
-//            )
-//            Spacer(modifier = Modifier.weight(1f))
-////            Button(
-////                onClick = {
-////                    downloadStatus = "Downloading..."
-////                    downloadFile(item) { result ->
-////                        downloadStatus = if (result) "Downloaded" else "Download Failed"
-////                    }
-////
-////                },
-////                modifier = Modifier.size(100.dp, 30.dp)
-////            ) {
-////                Text(text = downloadStatus, fontSize = 8.sp)
-////            }
-//            IconButton(onClick = {
-//                downloadStatus = "Downloading..."
-//                downloadFile(item) { result ->
-//                    downloadStatus = if (result) "Downloaded" else "Download Failed"
-//                }
-//            },
-//                modifier = Modifier
-////                    .padding(bottom = 8.dp)
-//                    .align(Alignment.CenterVertically)) {
-//                Icon(
-//                    imageVector = Icons.Default.Download,
-//                    contentDescription = "Download"
-//                )
-//            }
-//        }
-//    }
 }
 
 private fun downloadFile(smbFile: SmbFile, callback: (Boolean) -> Unit) {
