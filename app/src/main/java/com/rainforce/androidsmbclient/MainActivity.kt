@@ -145,13 +145,13 @@ fun MainScreen() {
                     }
                 }
                 Row {
-                    Text(
-                        text = "Remote Files",
-                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
-                        modifier = Modifier
-                            .padding(bottom = 8.dp)
-                            .align(Alignment.CenterVertically)
-                    )
+//                    Text(
+//                        text = "Remote Files",
+//                        style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp),
+//                        modifier = Modifier
+//                            .padding(bottom = 8.dp)
+//                            .align(Alignment.CenterVertically)
+//                    )
                     IconButton(
                         onClick = {
                             viewModel.refreshSMBFiles()
