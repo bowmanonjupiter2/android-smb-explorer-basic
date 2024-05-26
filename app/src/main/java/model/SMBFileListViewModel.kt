@@ -27,12 +27,6 @@ class SMBFileListViewModel : ViewModel() {
     private val _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean> get() = _isProcessing
 
-    private val _fileListResult = MutableLiveData<String?>(null)
-    val fileListResult: LiveData<String?> get() = _fileListResult
-
-    private val _uploadResult = MutableLiveData<String>(null)
-    val uploadResult: LiveData<String?> get() = _uploadResult
-
     fun uploadSMBFile(local: File, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
             var success: Boolean
@@ -44,40 +38,32 @@ class SMBFileListViewModel : ViewModel() {
 
                 var smbFile: SmbFile? = null
 
-
-
                 try {
                     _isProcessing.postValue(true)
-                    _uploadResult.postValue("Uploading...")
-
                     smbFile = SmbFile(smbServerUploadUrl, authContext)
+                    if (!smbFile.exists()) {
 
-                    FileInputStream(local).use { inputStream ->
-                        SmbFileOutputStream(smbFile).use { outputStream ->
-                            inputStream.copyTo(outputStream)
+                        FileInputStream(local).use { inputStream ->
+                            SmbFileOutputStream(smbFile).use { outputStream ->
+                                inputStream.copyTo(outputStream)
+                            }
                         }
+                        success = true
+                        refreshSMBFiles()
+
+                    } else {
+                        success = false
                     }
 
-                    _isProcessing.postValue(false)
-                    _uploadResult.postValue("Upload Successful.")
-
-                    success = true
-                    refreshSMBFiles()
-
                 } catch (mal: MalformedURLException) {
-                    _isProcessing.postValue(false)
-                    _uploadResult.postValue(mal.message)
                     success = false
                 } catch (smb: SmbException) {
-                    _isProcessing.postValue(false)
-                    _uploadResult.postValue(smb.message)
                     success = false
                 } catch (t: Throwable) {
-                    _isProcessing.postValue(false)
-                    _uploadResult.postValue(t.message)
                     success = false
                 } finally {
                     smbFile?.close()
+                    _isProcessing.postValue(false)
                 }
             }
             withContext(Dispatchers.Main) {
@@ -97,11 +83,8 @@ class SMBFileListViewModel : ViewModel() {
                 var smbServer: SmbFile? = null
 
                 try {
-                    _fileList.postValue(emptyList())
-
                     _isProcessing.postValue(true)
-                    _fileListResult.postValue("Retrieving...")
-
+                    _fileList.postValue(emptyList())
                     smbServer = SmbFile(_smbServerUrl.value, authContext)
 
                     if (smbServer.exists()) {
@@ -110,25 +93,15 @@ class SMBFileListViewModel : ViewModel() {
                         }.sortedBy { it.uncPath.toString().lowercase() }
 
                         withContext(Dispatchers.Main) {
-                            _isProcessing.postValue(false)
-                            _fileListResult.postValue("Retrieved.")
                             _fileList.postValue(files)
                         }
-                    } else {
-                        _isProcessing.postValue(false)
-                        _fileListResult.postValue("SMB Server Not Found.")
                     }
                 } catch (mal: MalformedURLException) {
-                    _isProcessing.postValue(false)
-                    _fileListResult.postValue(mal.message)
                 } catch (smb: SmbException) {
-                    _isProcessing.postValue(false)
-                    _fileListResult.postValue(smb.message)
                 } catch (t: Throwable) {
-                    _isProcessing.postValue(false)
-                    _fileListResult.postValue(t.message)
                 } finally {
                     smbServer?.close()
+                    _isProcessing.postValue(false)
                 }
             }
 
