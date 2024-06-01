@@ -48,6 +48,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -126,11 +127,14 @@ fun MainScreen() {
                 }
             }
         }
-    
-    val pickFolderLauncher = 
+
+    val pickFolderLauncher =
         rememberLauncherForActivityResult(contract = ActivityResultContracts.OpenDocumentTree()) { uri ->
             uri?.let { documentTreeUri ->
-                context.contentResolver.takePersistableUriPermission(documentTreeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                context.contentResolver.takePersistableUriPermission(
+                    documentTreeUri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
                 viewModel.retrieveLocalFileList(documentTreeUri, context)
             }
         }
@@ -139,12 +143,22 @@ fun MainScreen() {
         viewModel.refreshSMBFiles()
     }
 
-    Surface(modifier = Modifier.fillMaxSize()) {
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
         Box(
             modifier = Modifier
                 .statusBarsPadding()
                 .systemBarsPadding()
-                .background(MaterialTheme.colorScheme.background)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(Color.LightGray, Color.Cyan),
+                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                        end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
+                    )
+                )
+            //.background(MaterialTheme.colorScheme.background)
         ) {
             // observe isProcessing state and display progress indicator
             if (isProcessing) {
@@ -171,7 +185,10 @@ fun MainScreen() {
                     if (downLoadUri.value != null) {
                         Text(
                             //text = downLoadUri.value.toString(),
-                            text = URLDecoder.decode(downLoadUri.value.toString(), StandardCharsets.UTF_8.toString()),
+                            text = URLDecoder.decode(
+                                downLoadUri.value.toString(),
+                                StandardCharsets.UTF_8.toString()
+                            ),
                             style = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp),
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
@@ -179,7 +196,7 @@ fun MainScreen() {
                         )
                     } else {
                         Text(
-                            text =  "Select device folder to download...",
+                            text = "Select device folder to download...",
                             style = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp),
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
@@ -229,7 +246,12 @@ fun MainScreen() {
 
                 LazyColumn {
                     items(items.value) { file ->
-                        SMBFileEntryRow(item = file, downLoadUri.value != null, localFiles.value.contains(file.uncPath.toString().trimStart('\\')), downLoadUri.value)
+                        SMBFileEntryRow(
+                            item = file,
+                            downLoadUri.value != null,
+                            localFiles.value.contains(file.uncPath.toString().trimStart('\\')),
+                            downLoadUri.value
+                        )
                     }
                 }
             }
@@ -238,7 +260,12 @@ fun MainScreen() {
 }
 
 @Composable
-fun SMBFileEntryRow(item: SmbFile, isDownloadable: Boolean = false, isDownloaded: Boolean = false, downloadUri: Uri?) {
+fun SMBFileEntryRow(
+    item: SmbFile,
+    isDownloadable: Boolean = false,
+    isDownloaded: Boolean = false,
+    downloadUri: Uri?
+) {
 
     val context = LocalContext.current
 
@@ -293,7 +320,7 @@ fun SMBFileEntryRow(item: SmbFile, isDownloadable: Boolean = false, isDownloaded
                             "Downloading " + item.uncPath.toString().trimStart('\\'),
                             Toast.LENGTH_SHORT
                         ).show()
-                        viewModel.downloadFileToUri(context,downloadUri,item) { result ->
+                        viewModel.downloadFileToUri(context, downloadUri, item) { result ->
                             if (result) {
                                 Toast.makeText(
                                     context,
@@ -304,7 +331,8 @@ fun SMBFileEntryRow(item: SmbFile, isDownloadable: Boolean = false, isDownloaded
                             } else {
                                 Toast.makeText(
                                     context,
-                                    "Failed to download  " + item.uncPath.toString().trimStart('\\'),
+                                    "Failed to download  " + item.uncPath.toString()
+                                        .trimStart('\\'),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
