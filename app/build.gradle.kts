@@ -69,6 +69,7 @@ dependencies {
     implementation("androidx.compose.runtime:runtime-livedata:1.6.7")
     implementation("androidx.compose.runtime:runtime-rxjava2:1.6.7")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
+    implementation(libs.androidx.documentfile)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

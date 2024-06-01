@@ -1,5 +1,8 @@
 package model
 
+import android.content.Context
+import android.net.Uri
+import android.provider.DocumentsContract
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -21,11 +24,45 @@ class SMBFileListViewModel : ViewModel() {
     private val _smbServerUrl = MutableLiveData("smb://192.168.50.44/pi-nas-share")
     val smbServerUrl: LiveData<String> get() = _smbServerUrl
 
+    private val _downloadUri = MutableLiveData<Uri>(null)
+    val downloadUri: LiveData<Uri> get() = _downloadUri
+
     private val _fileList = MutableLiveData<List<SmbFile>>(emptyList())
     val fileList: LiveData<List<SmbFile>> get() = _fileList
 
+    private val _localFileList = MutableLiveData<List<String>>(emptyList())
+    val localFileList: LiveData<List<String>> get() = _localFileList
+
     private val _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean> get() = _isProcessing
+
+    fun retrieveLocalFileList(uri: Uri, context: Context) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(
+                    uri,
+                    DocumentsContract.getTreeDocumentId(uri)
+                )
+                context.contentResolver.query(
+                    childrenUri,
+                    arrayOf(DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    _localFileList.postValue(emptyList())
+                    var fileList = mutableListOf<String>()
+                    while (cursor.moveToNext()) {
+                        val name =
+                            cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME))
+                        fileList.add(name)
+                    }
+                    _localFileList.postValue(fileList)
+                    _downloadUri.postValue(uri)
+                }
+            }
+        }
+    }
 
     fun uploadSMBFile(local: File, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
