@@ -67,6 +67,7 @@ import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
+val viewModel = SMBFileListViewModel()
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,7 +104,6 @@ fun SMBFileShareApp() {
 fun MainScreen() {
 
     val context = LocalContext.current
-    val viewModel = SMBFileListViewModel()
 
     val items = viewModel.fileList.observeAsState(initial = emptyList())
     val isProcessing by viewModel.isProcessing.observeAsState(initial = false)
@@ -293,7 +293,7 @@ fun SMBFileEntryRow(item: SmbFile, isDownloadable: Boolean = false, isDownloaded
                             "Downloading " + item.uncPath.toString().trimStart('\\'),
                             Toast.LENGTH_SHORT
                         ).show()
-                        downloadFileToUri(context,downloadUri,item) { result ->
+                        viewModel.downloadFileToUri(context,downloadUri,item) { result ->
                             if (result) {
                                 Toast.makeText(
                                     context,
@@ -323,42 +323,7 @@ fun SMBFileEntryRow(item: SmbFile, isDownloadable: Boolean = false, isDownloaded
     }
 }
 
-private fun downloadFileToUri(context: Context, uri: Uri, smbFile: SmbFile, callback: (Boolean) -> Unit) {
-    var isSuccess = false
 
-    val contentResolver: ContentResolver = context.contentResolver
-    // Resolve the document tree URI to a DocumentFile
-    val documentTree = DocumentFile.fromTreeUri(context, uri)
-    // Check if the documentTree is not null and is a directory
-    if (documentTree != null && documentTree.isDirectory) {
-        // Create the new file in the directory
-        val newFile = documentTree.createFile("application/octet-stream",smbFile.uncPath.toString().trimStart('\\'))
-        // Write the file content to the new file
-        if (newFile != null) {
-            kotlinx.coroutines.GlobalScope.launch {
-                try {
-                    smbFile.use {
-                        SmbFileInputStream(it).use { inputStream ->
-                            contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                inputStream.copyTo(outputStream)
-                                isSuccess = true
-                            }
-                        }
-                    }
-                } catch (e: Exception) {
-                    isSuccess = false
-                }
-                withContext(Dispatchers.Main) {
-                    callback(isSuccess)
-                }
-            }
-        } else {
-            callback(isSuccess)
-        }
-    } else {
-        callback(isSuccess)
-    }
-}
 private fun getUploadTempFilePathFromUri(context: Context, uri: Uri): String? {
     var filePath: String? = null
     if (uri.scheme == ContentResolver.SCHEME_CONTENT) {

@@ -1,8 +1,11 @@
 package model
 
+import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
+import android.provider.OpenableColumns
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,6 +15,7 @@ import jcifs.context.SingletonContext
 import jcifs.smb.NtlmPasswordAuthenticator
 import jcifs.smb.SmbException
 import jcifs.smb.SmbFile
+import jcifs.smb.SmbFileInputStream
 import jcifs.smb.SmbFileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -63,7 +67,43 @@ class SMBFileListViewModel : ViewModel() {
             }
         }
     }
+    fun downloadFileToUri(context: Context, uri: Uri, smbFile: SmbFile, callback: (Boolean) -> Unit) {
+        var isSuccess = false
 
+        val contentResolver: ContentResolver = context.contentResolver
+        // Resolve the document tree URI to a DocumentFile
+        val documentTree = DocumentFile.fromTreeUri(context, uri)
+        // Check if the documentTree is not null and is a directory
+        if (documentTree != null && documentTree.isDirectory) {
+            // Create the new file in the directory
+            val newFile = documentTree.createFile("application/octet-stream",smbFile.uncPath.toString().trimStart('\\'))
+            // Write the file content to the new file
+            if (newFile != null) {
+                kotlinx.coroutines.GlobalScope.launch {
+                    try {
+                        smbFile.use {
+                            SmbFileInputStream(it).use { inputStream ->
+                                contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
+                                    inputStream.copyTo(outputStream)
+                                    isSuccess = true
+                                }
+                            }
+                        }
+                        downloadUri.value?.let { retrieveLocalFileList(it,context) }
+                    } catch (e: Exception) {
+                        isSuccess = false
+                    }
+                    withContext(Dispatchers.Main) {
+                        callback(isSuccess)
+                    }
+                }
+            } else {
+                callback(isSuccess)
+            }
+        } else {
+            callback(isSuccess)
+        }
+    }
     fun uploadSMBFile(local: File, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
             var success: Boolean
