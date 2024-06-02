@@ -56,13 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import androidx.documentfile.provider.DocumentFile
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 import jcifs.smb.SmbFile
-import jcifs.smb.SmbFileInputStream
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import model.SMBFileListViewModel
 import java.io.File
 import java.net.URLDecoder
@@ -153,7 +148,7 @@ fun MainScreen() {
                 .systemBarsPadding()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color.LightGray, Color.Cyan),
+                        colors = listOf(Color.LightGray, Color.Black),
                         start = androidx.compose.ui.geometry.Offset(0f, 0f),
                         end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
                     )
