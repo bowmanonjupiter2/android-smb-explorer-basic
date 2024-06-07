@@ -1,5 +1,6 @@
 package com.rainforce.androidsmbclient
 
+import android.app.Activity
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -12,7 +13,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,24 +30,35 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -53,6 +67,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -63,9 +80,11 @@ import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-val viewModel = SMBFileListViewModel()
 
 class MainActivity : ComponentActivity() {
+
+    private val viewModel: SMBFileListViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -73,14 +92,14 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AndroidSMBClientTheme {
-                SMBFileShareApp()
+                SMBFileShareApp(viewModel)
             }
         }
     }
 }
 
 @Composable
-fun SMBFileShareApp() {
+fun SMBFileShareApp(viewModel: SMBFileListViewModel) {
 
     val context = LocalContext.current
     val isDarkTheme = isSystemInDarkTheme()
@@ -90,14 +109,32 @@ fun SMBFileShareApp() {
         dynamicLightColorScheme(context)
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.retrieveSavedSMBServerProfile()
+    }
+
     MaterialTheme(colorScheme = colorScheme) {
-        MainScreen()
+        if (viewModel.isShowDialogue.value == true) {
+            SMBProfileInputDialog(
+                serverUrl = viewModel.smbServerUrl.value ?: "",
+                userName = viewModel.smbUserName.value ?: "",
+                password = viewModel.smbPassword.value ?: "",
+                onDismiss = {
+                    (context as? Activity)?.finish()
+                }) { smbServerUrl, userName, password ->
+                viewModel.saveSMBServerProfile(smbServerUrl, userName, password)
+                viewModel.retrieveSavedSMBServerProfile()
+                viewModel.refreshSMBFiles()
+            }
+        } else {
+            MainScreen(viewModel)
+        }
     }
 
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(viewModel: SMBFileListViewModel) {
 
     val context = LocalContext.current
 
@@ -134,9 +171,6 @@ fun MainScreen() {
             }
         }
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshSMBFiles()
-    }
 
     Surface(
         modifier = Modifier
@@ -148,7 +182,7 @@ fun MainScreen() {
                 .systemBarsPadding()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color.LightGray, Color.Black),
+                        colors = listOf(Color.LightGray, Color.Yellow),
                         start = androidx.compose.ui.geometry.Offset(0f, 0f),
                         end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
                     )
@@ -237,11 +271,29 @@ fun MainScreen() {
                             contentDescription = "Check Any Existing File"
                         )
                     }
+                    // want a logout button to call view model to clean up smb profile
+                    // and start the login screen again
+                    IconButton(
+                        onClick = {
+                            viewModel.cleanSMBServerProfile()
+                            //close the application
+                            (context as? Activity)?.finish()
+                        },
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .align(Alignment.CenterVertically)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Logout,
+                            contentDescription = "Log off current SMB server"
+                        )
+                    }
                 }
 
                 LazyColumn {
                     items(items.value) { file ->
                         SMBFileEntryRow(
+                            viewModel,
                             item = file,
                             downLoadUri.value != null,
                             localFiles.value.contains(file.uncPath.toString().trimStart('\\')),
@@ -256,6 +308,7 @@ fun MainScreen() {
 
 @Composable
 fun SMBFileEntryRow(
+    viewModel: SMBFileListViewModel,
     item: SmbFile,
     isDownloadable: Boolean = false,
     isDownloaded: Boolean = false,
@@ -346,6 +399,99 @@ fun SMBFileEntryRow(
     }
 }
 
+@Composable
+fun SMBProfileInputDialog(
+    serverUrl: String,
+    userName: String,
+    password: String,
+    onDismiss: () -> Unit,
+    onConfirm: (smbServerUrl: String, userName: String, password: String) -> Unit,
+) {
+    var enteredServerUrl by remember { mutableStateOf(serverUrl) }
+    var enteredUserName by remember { mutableStateOf(userName) }
+    var enteredPassword by remember { mutableStateOf(password) }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+
+    val isConfirmEnabled =
+        enteredServerUrl.isNotEmpty() && enteredUserName.isNotEmpty() && enteredPassword.isNotEmpty()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(enteredServerUrl, enteredUserName, enteredPassword) },
+                enabled = isConfirmEnabled
+            ) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = {
+            Text(text = "Login SMB Server", style = TextStyle(fontSize = 14.sp))
+        },
+        text = {
+            Column {
+                TextField(
+                    value = enteredServerUrl,
+                    onValueChange = { enteredServerUrl = it },
+                    placeholder = {
+                        Text(
+                            text = "SMB server url",
+                            style = TextStyle(fontSize = 12.sp)
+                        )
+                    },
+                    textStyle = TextStyle(fontSize = 12.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .background(color = Color.Transparent, shape = RoundedCornerShape(8.dp))
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = enteredUserName,
+                    onValueChange = { enteredUserName = it },
+                    placeholder = { Text(text = "Username", style = TextStyle(fontSize = 12.sp)) },
+                    textStyle = TextStyle(fontSize = 12.sp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .background(color = Color.Transparent, shape = RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextField(
+                    value = enteredPassword,
+                    onValueChange = { enteredPassword = it },
+                    placeholder = { Text(text = "Password", style = TextStyle(fontSize = 12.sp)) },
+                    textStyle = TextStyle(fontSize = 12.sp),
+                    visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Done
+                    ),
+                    trailingIcon = {
+                        val image =
+                            if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                        IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                            Icon(
+                                imageVector = image,
+                                contentDescription = "Toggle Password Visibility"
+                            )
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .background(color = Color.Transparent, shape = RoundedCornerShape(8.dp))
+                        .border(width = 1.dp, color = Color.Gray)
+                )
+            }
+        }
+    )
+}
 
 private fun getUploadTempFilePathFromUri(context: Context, uri: Uri): String? {
     var filePath: String? = null

@@ -64,12 +64,14 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.documentfile)
 
     implementation("androidx.compose.runtime:runtime:1.6.7")
     implementation("androidx.compose.runtime:runtime-livedata:1.6.7")
     implementation("androidx.compose.runtime:runtime-rxjava2:1.6.7")
     implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
-    implementation(libs.androidx.documentfile)
+
+    implementation ("androidx.security:security-crypto:1.1.0-alpha03")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

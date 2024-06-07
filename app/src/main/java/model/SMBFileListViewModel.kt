@@ -1,11 +1,14 @@
 package model
 
+import Util.SecurePreferences
+import android.app.Application
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -24,9 +27,18 @@ import java.io.File
 import java.io.FileInputStream
 import java.net.MalformedURLException
 
-class SMBFileListViewModel : ViewModel() {
-    private val _smbServerUrl = MutableLiveData("smb://192.168.50.44/pi-nas-share")
+class SMBFileListViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val securePreferences: SecurePreferences = SecurePreferences(application)
+
+    private val _smbServerUrl = MutableLiveData("")
     val smbServerUrl: LiveData<String> get() = _smbServerUrl
+
+    private val _smbUserName = MutableLiveData("")
+    val smbUserName : LiveData<String> get() = _smbUserName
+
+    private val _smbPassword = MutableLiveData("")
+    val smbPassword : LiveData<String> get() = _smbPassword
 
     private val _downloadUri = MutableLiveData<Uri>(null)
     val downloadUri: LiveData<Uri> get() = _downloadUri
@@ -39,6 +51,35 @@ class SMBFileListViewModel : ViewModel() {
 
     private val _isProcessing = MutableLiveData(false)
     val isProcessing: LiveData<Boolean> get() = _isProcessing
+
+    private val _isShowDialogue = MutableLiveData(false)
+    val isShowDialogue: LiveData<Boolean> get() = _isShowDialogue
+
+    fun retrieveSavedSMBServerProfile() {
+        _smbServerUrl.value = securePreferences.getEncryptedString("smbServerUrl")
+        _smbUserName.value = securePreferences.getEncryptedString("smbUserName")
+        _smbPassword.value = securePreferences.getEncryptedString("smbPassword")
+
+        if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
+            _isShowDialogue.postValue(true)
+        } else {
+            refreshSMBFiles()
+        }
+    }
+
+    fun saveSMBServerProfile(smbServerUrl: String, smbUserName: String, smbPassword: String) {
+        securePreferences.saveEncryptedString("smbServerUrl", smbServerUrl)
+        securePreferences.saveEncryptedString("smbUserName", smbUserName)
+        securePreferences.saveEncryptedString("smbPassword", smbPassword)
+    }
+
+    //clean up saved smb server profile
+    fun cleanSMBServerProfile() {
+        securePreferences.saveEncryptedString("smbServerUrl", "")
+        securePreferences.saveEncryptedString("smbUserName", "")
+        securePreferences.saveEncryptedString("smbPassword", "")
+        _isShowDialogue.postValue(true)
+    }
 
     fun retrieveLocalFileList(uri: Uri, context: Context) {
         viewModelScope.launch {
@@ -110,7 +151,7 @@ class SMBFileListViewModel : ViewModel() {
             withContext(Dispatchers.IO) {
                 val baseContext: CIFSContext = SingletonContext.getInstance()
                 val authContext: CIFSContext =
-                    baseContext.withCredentials(NtlmPasswordAuthenticator("cool_pi", "cool_pi"))
+                    baseContext.withCredentials(NtlmPasswordAuthenticator(smbUserName.value, smbPassword.value))
                 val smbServerUploadUrl = smbServerUrl.value + File.separator + local.name
 
                 var smbFile: SmbFile? = null
@@ -155,14 +196,14 @@ class SMBFileListViewModel : ViewModel() {
 
                 val baseContext: CIFSContext = SingletonContext.getInstance()
                 val authContext: CIFSContext =
-                    baseContext.withCredentials(NtlmPasswordAuthenticator("cool_pi", "cool_pi"))
+                    baseContext.withCredentials(NtlmPasswordAuthenticator(smbUserName.value, smbPassword.value))
 
                 var smbServer: SmbFile? = null
 
                 try {
                     _isProcessing.postValue(true)
                     _fileList.postValue(emptyList())
-                    smbServer = SmbFile(_smbServerUrl.value, authContext)
+                    smbServer = SmbFile(smbServerUrl.value, authContext)
 
                     if (smbServer.exists()) {
                         val files = smbServer.listFiles().filterNot { smbFile ->
@@ -174,8 +215,11 @@ class SMBFileListViewModel : ViewModel() {
                         }
                     }
                 } catch (mal: MalformedURLException) {
+                    mal.printStackTrace()
                 } catch (smb: SmbException) {
+                    smb.printStackTrace()
                 } catch (t: Throwable) {
+                    t.printStackTrace()
                 } finally {
                     smbServer?.close()
                     _isProcessing.postValue(false)
