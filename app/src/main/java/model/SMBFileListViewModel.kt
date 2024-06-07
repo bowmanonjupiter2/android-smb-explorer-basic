@@ -60,9 +60,10 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         _smbUserName.value = securePreferences.getEncryptedString("smbUserName")
         _smbPassword.value = securePreferences.getEncryptedString("smbPassword")
 
-        if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
+         if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
             _isShowDialogue.postValue(true)
         } else {
+            _isShowDialogue.postValue(false)
             refreshSMBFiles()
         }
     }

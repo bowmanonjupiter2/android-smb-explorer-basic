@@ -109,28 +109,9 @@ fun SMBFileShareApp(viewModel: SMBFileListViewModel) {
         dynamicLightColorScheme(context)
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.retrieveSavedSMBServerProfile()
-    }
-
     MaterialTheme(colorScheme = colorScheme) {
-        if (viewModel.isShowDialogue.value == true) {
-            SMBProfileInputDialog(
-                serverUrl = viewModel.smbServerUrl.value ?: "",
-                userName = viewModel.smbUserName.value ?: "",
-                password = viewModel.smbPassword.value ?: "",
-                onDismiss = {
-                    (context as? Activity)?.finish()
-                }) { smbServerUrl, userName, password ->
-                viewModel.saveSMBServerProfile(smbServerUrl, userName, password)
-                viewModel.retrieveSavedSMBServerProfile()
-                viewModel.refreshSMBFiles()
-            }
-        } else {
-            MainScreen(viewModel)
-        }
+        MainScreen(viewModel)
     }
-
 }
 
 @Composable
@@ -143,6 +124,8 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
 
     val downLoadUri = viewModel.downloadUri.observeAsState(initial = null)
     val localFiles = viewModel.localFileList.observeAsState(initial = emptyList())
+
+    val isShowDialogue by viewModel.isShowDialogue.observeAsState(initial = false)
 
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -171,6 +154,23 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
             }
         }
 
+    LaunchedEffect(Unit) {
+        viewModel.retrieveSavedSMBServerProfile()
+    }
+
+    if (isShowDialogue) {
+        SMBProfileInputDialog(
+            serverUrl = viewModel.smbServerUrl.value ?: "",
+            userName = viewModel.smbUserName.value ?: "",
+            password = viewModel.smbPassword.value ?: "",
+            onDismiss = {
+                (context as? Activity)?.finish()
+            }) { smbServerUrl, userName, password ->
+            viewModel.saveSMBServerProfile(smbServerUrl, userName, password)
+            viewModel.retrieveSavedSMBServerProfile()
+            viewModel.refreshSMBFiles()
+        }
+    }
 
     Surface(
         modifier = Modifier
