@@ -33,6 +33,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
@@ -284,7 +285,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                             .align(Alignment.CenterVertically)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Logout,
+                            imageVector = Icons.AutoMirrored.Filled.Logout,
                             contentDescription = "Log off current SMB server"
                         )
                     }

@@ -1,17 +1,14 @@
 package model
 
-import Util.SecurePreferences
 import android.app.Application
 import android.content.ContentResolver
 import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
-import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import jcifs.CIFSContext
 import jcifs.context.SingletonContext
@@ -23,6 +20,7 @@ import jcifs.smb.SmbFileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import util.SecurePreferences
 import java.io.File
 import java.io.FileInputStream
 import java.net.MalformedURLException
@@ -35,10 +33,10 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     val smbServerUrl: LiveData<String> get() = _smbServerUrl
 
     private val _smbUserName = MutableLiveData("")
-    val smbUserName : LiveData<String> get() = _smbUserName
+    val smbUserName: LiveData<String> get() = _smbUserName
 
     private val _smbPassword = MutableLiveData("")
-    val smbPassword : LiveData<String> get() = _smbPassword
+    val smbPassword: LiveData<String> get() = _smbPassword
 
     private val _downloadUri = MutableLiveData<Uri>(null)
     val downloadUri: LiveData<Uri> get() = _downloadUri
@@ -60,7 +58,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         _smbUserName.value = securePreferences.getEncryptedString("smbUserName")
         _smbPassword.value = securePreferences.getEncryptedString("smbPassword")
 
-         if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
+        if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
             _isShowDialogue.postValue(true)
         } else {
             _isShowDialogue.postValue(false)
@@ -97,7 +95,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                     null
                 )?.use { cursor ->
                     _localFileList.postValue(emptyList())
-                    var fileList = mutableListOf<String>()
+                    val fileList = mutableListOf<String>()
                     while (cursor.moveToNext()) {
                         val name =
                             cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME))
@@ -109,31 +107,42 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
             }
         }
     }
-    fun downloadFileToUri(context: Context, uri: Uri, smbFile: SmbFile, callback: (Boolean) -> Unit) {
-        var isSuccess = false
 
+    fun downloadFileToUri(
+        context: Context,
+        uri: Uri,
+        smbFile: SmbFile,
+        callback: (Boolean) -> Unit
+    ) {
+        var isSuccess = false
         val contentResolver: ContentResolver = context.contentResolver
         // Resolve the document tree URI to a DocumentFile
         val documentTree = DocumentFile.fromTreeUri(context, uri)
         // Check if the documentTree is not null and is a directory
         if (documentTree != null && documentTree.isDirectory) {
             // Create the new file in the directory
-            val newFile = documentTree.createFile("application/octet-stream",smbFile.uncPath.toString().trimStart('\\'))
+            val newFile = documentTree.createFile(
+                "application/octet-stream",
+                smbFile.uncPath.toString().trimStart('\\')
+            )
             // Write the file content to the new file
             if (newFile != null) {
-                kotlinx.coroutines.GlobalScope.launch {
-                    try {
-                        smbFile.use {
-                            SmbFileInputStream(it).use { inputStream ->
-                                contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
-                                    inputStream.copyTo(outputStream)
-                                    isSuccess = true
+                viewModelScope.launch {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            smbFile.use {
+                                SmbFileInputStream(it).use { inputStream ->
+                                    contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
+                                        inputStream.copyTo(outputStream)
+                                        isSuccess = true
+                                    }
                                 }
                             }
+                            downloadUri.value?.let { retrieveLocalFileList(it, context) }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            isSuccess = false
                         }
-                        downloadUri.value?.let { retrieveLocalFileList(it,context) }
-                    } catch (e: Exception) {
-                        isSuccess = false
                     }
                     withContext(Dispatchers.Main) {
                         callback(isSuccess)
@@ -146,6 +155,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
             callback(isSuccess)
         }
     }
+
     fun uploadSMBFile(local: File, callback: (Boolean) -> Unit) {
         viewModelScope.launch {
             var success: Boolean
@@ -197,7 +207,12 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
 
                 val baseContext: CIFSContext = SingletonContext.getInstance()
                 val authContext: CIFSContext =
-                    baseContext.withCredentials(NtlmPasswordAuthenticator(smbUserName.value, smbPassword.value))
+                    baseContext.withCredentials(
+                        NtlmPasswordAuthenticator(
+                            smbUserName.value,
+                            smbPassword.value
+                        )
+                    )
 
                 var smbServer: SmbFile? = null
 
@@ -226,7 +241,6 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                     _isProcessing.postValue(false)
                 }
             }
-
         }
     }
 }
