@@ -38,7 +38,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -76,7 +75,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 import jcifs.smb.SmbFile
-import model.SMBFileListViewModel
+import com.rainforce.androidsmbclient.model.SMBFileListViewModel
 import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets

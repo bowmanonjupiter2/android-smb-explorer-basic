@@ -1,4 +1,4 @@
-package model
+package com.rainforce.androidsmbclient.model
 
 import android.app.Application
 import android.content.ContentResolver
@@ -20,7 +20,7 @@ import jcifs.smb.SmbFileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import util.SecurePreferences
+import com.rainforce.androidsmbclient.util.SecurePreferences
 import java.io.File
 import java.io.FileInputStream
 import java.net.MalformedURLException
