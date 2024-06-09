@@ -284,8 +284,9 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                     IconButton(
                         onClick = {
                             viewModel.cleanSMBServerProfile()
+                            viewModel.retrieveSavedSMBServerProfile()
                             //close the application
-                            (context as? Activity)?.finish()
+//                            (context as? Activity)?.finish()
                         },
                         modifier = Modifier
                             .padding(bottom = 4.dp)
