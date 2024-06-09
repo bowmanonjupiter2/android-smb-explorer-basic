@@ -1,16 +1,12 @@
 package com.rainforce.androidsmbclient
 
 import android.app.Activity
-import android.app.usage.NetworkStats
-import android.app.usage.NetworkStatsManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.net.ConnectivityManager
 import android.net.TrafficStats
 import android.net.Uri
 import android.os.Bundle
-import android.os.RemoteException
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,21 +15,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-
 import androidx.compose.foundation.layout.Column
-
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -68,7 +60,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,13 +78,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
+import com.rainforce.androidsmbclient.model.SMBFileListViewModel
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 import jcifs.smb.SmbFile
-import com.rainforce.androidsmbclient.model.SMBFileListViewModel
 import kotlinx.coroutines.delay
 import java.io.File
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
 
 
 class MainActivity : ComponentActivity() {
