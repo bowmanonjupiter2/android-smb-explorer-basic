@@ -41,17 +41,17 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     private val _downloadUri = MutableLiveData<Uri>(null)
     val downloadUri: LiveData<Uri> get() = _downloadUri
 
-    private val _fileList = MutableLiveData<List<SmbFile>>(emptyList())
-    val fileList: LiveData<List<SmbFile>> get() = _fileList
+    private val _remoteFileList = MutableLiveData<List<SmbFile>>(emptyList())
+    val remoteFileList: LiveData<List<SmbFile>> get() = _remoteFileList
 
     private val _localFileList = MutableLiveData<List<String>>(emptyList())
     val localFileList: LiveData<List<String>> get() = _localFileList
 
-    private val _isProcessing = MutableLiveData(false)
-    val isProcessing: LiveData<Boolean> get() = _isProcessing
+    private val _isInProgress = MutableLiveData(false)
+    val isInProgress: LiveData<Boolean> get() = _isInProgress
 
-    private val _isShowDialogue = MutableLiveData(false)
-    val isShowDialogue: LiveData<Boolean> get() = _isShowDialogue
+    private val _shouldShowDialogue = MutableLiveData(false)
+    val shouldShowDialogue get() = _shouldShowDialogue
 
     fun retrieveSavedSMBServerProfile() {
         _smbServerUrl.value = securePreferences.getEncryptedString("smbServerUrl")
@@ -59,9 +59,9 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         _smbPassword.value = securePreferences.getEncryptedString("smbPassword")
 
         if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
-            _isShowDialogue.postValue(true)
+            _shouldShowDialogue.postValue(true)
         } else {
-            _isShowDialogue.postValue(false)
+            _shouldShowDialogue.postValue(false)
             refreshSMBFiles()
         }
     }
@@ -77,7 +77,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         securePreferences.saveEncryptedString("smbServerUrl", "")
         securePreferences.saveEncryptedString("smbUserName", "")
         securePreferences.saveEncryptedString("smbPassword", "")
-        _isShowDialogue.postValue(true)
+        _shouldShowDialogue.postValue(true)
     }
 
     fun retrieveLocalFileList(uri: Uri, context: Context) {
@@ -130,6 +130,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
                         try {
+                            _isInProgress.postValue(true)
                             smbFile.use {
                                 SmbFileInputStream(it).use { inputStream ->
                                     contentResolver.openOutputStream(newFile.uri)?.use { outputStream ->
@@ -142,6 +143,9 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                         } catch (e: Exception) {
                             e.printStackTrace()
                             isSuccess = false
+                        }
+                        finally {
+                            _isInProgress.postValue(false)
                         }
                     }
                     withContext(Dispatchers.Main) {
@@ -168,7 +172,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                 var smbFile: SmbFile? = null
 
                 try {
-                    _isProcessing.postValue(true)
+                    _isInProgress.postValue(true)
                     smbFile = SmbFile(smbServerUploadUrl, authContext)
                     if (!smbFile.exists()) {
 
@@ -192,7 +196,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                     success = false
                 } finally {
                     smbFile?.close()
-                    _isProcessing.postValue(false)
+                    _isInProgress.postValue(false)
                 }
             }
             withContext(Dispatchers.Main) {
@@ -204,7 +208,6 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     fun refreshSMBFiles() {
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
-
                 val baseContext: CIFSContext = SingletonContext.getInstance()
                 val authContext: CIFSContext =
                     baseContext.withCredentials(
@@ -213,12 +216,10 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                             smbPassword.value
                         )
                     )
-
                 var smbServer: SmbFile? = null
-
                 try {
-                    _isProcessing.postValue(true)
-                    _fileList.postValue(emptyList())
+                    _isInProgress.postValue(true)
+                    _remoteFileList.postValue(emptyList())
                     smbServer = SmbFile(smbServerUrl.value, authContext)
 
                     if (smbServer.exists()) {
@@ -227,7 +228,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                         }.sortedBy { it.uncPath.toString().lowercase() }
 
                         withContext(Dispatchers.Main) {
-                            _fileList.postValue(files)
+                            _remoteFileList.postValue(files)
                         }
                     }
                 } catch (mal: MalformedURLException) {
@@ -238,7 +239,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                     t.printStackTrace()
                 } finally {
                     smbServer?.close()
-                    _isProcessing.postValue(false)
+                    _isInProgress.postValue(false)
                 }
             }
         }

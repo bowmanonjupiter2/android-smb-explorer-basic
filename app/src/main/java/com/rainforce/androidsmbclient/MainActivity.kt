@@ -119,13 +119,13 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
 
     val context = LocalContext.current
 
-    val items = viewModel.fileList.observeAsState(initial = emptyList())
-    val isProcessing by viewModel.isProcessing.observeAsState(initial = false)
+    val items = viewModel.remoteFileList.observeAsState(initial = emptyList())
+    val isInProgress by viewModel.isInProgress.observeAsState(initial = false)
 
     val downLoadUri = viewModel.downloadUri.observeAsState(initial = null)
     val localFiles = viewModel.localFileList.observeAsState(initial = emptyList())
 
-    val isShowDialogue by viewModel.isShowDialogue.observeAsState(initial = false)
+    val isShowDialogue by viewModel.shouldShowDialogue.observeAsState(initial = false)
 
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -190,9 +190,10 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
             //.background(MaterialTheme.colorScheme.background)
         ) {
             // observe isProcessing state and display progress indicator
-            if (isProcessing) {
+            if (isInProgress) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
