@@ -19,23 +19,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+
 import androidx.compose.foundation.layout.Column
+
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -204,9 +209,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                         end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
                     )
                 )
-            //.background(MaterialTheme.colorScheme.background)
         ) {
-            // observe isProcessing state and display progress indicator
             if (isInProgress) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
@@ -216,34 +219,10 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                // make the below text and icon button on the same line
                 Row {
-                    viewModel.smbServerUrl.value?.let {
+                    if (downLoadUri.value == null) {
                         Text(
-                            text = it,
-                            style = TextStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp),
-                            modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .align(Alignment.CenterVertically)
-                        )
-                    }
-                }
-                Row {
-                    if (downLoadUri.value != null) {
-                        Text(
-                            //text = downLoadUri.value.toString(),
-                            text = URLDecoder.decode(
-                                downLoadUri.value.toString(),
-                                StandardCharsets.UTF_8.toString()
-                            ),
-                            style = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                            modifier = Modifier
-                                .padding(bottom = 4.dp)
-                                .align(Alignment.CenterVertically)
-                        )
-                    } else {
-                        Text(
-                            text = "Select device folder to download...",
+                            text = "Select local folder to download...",
                             style = TextStyle(fontWeight = FontWeight.Normal, fontSize = 14.sp),
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
@@ -252,6 +231,11 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                     }
                 }
                 Row {
+
+                    HighlightedButton() {
+                        pickFolderLauncher.launch(null)
+                    }
+
                     IconButton(
                         onClick = {
                             viewModel.refreshSMBFiles()
@@ -278,19 +262,6 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                         )
                     }
 
-                    IconButton(
-                        onClick = { pickFolderLauncher.launch(null) },
-                        modifier = Modifier
-                            .padding(bottom = 4.dp)
-                            .align(Alignment.CenterVertically)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.FolderOpen,
-                            contentDescription = "Check Any Existing File"
-                        )
-                    }
-                    // want a logout button to call view model to clean up smb profile
-                    // and start the login screen again
                     IconButton(
                         onClick = {
                             viewModel.cleanSMBServerProfile()
@@ -575,7 +546,7 @@ private fun DownloadSpeedDisplay() {
             val timeDifference = currentTime - previousTimeStamp
 
             if (timeDifference > 0) {
-                downloadSpeed = ((dataReceived * 1000)/ (timeDifference * 1024)).toDouble()
+                downloadSpeed = ((dataReceived * 1000) / (timeDifference * 1024)).toDouble()
                 uploadSpeed = ((dataSent * 1000) / (timeDifference * 1024)).toDouble()
 
                 previousTotalRxBytes = currentTotalRxBytes
@@ -592,8 +563,40 @@ private fun DownloadSpeedDisplay() {
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = String.format("Upload Speed: %.2f KB/s", uploadSpeed), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = String.format("Upload Speed: %.2f KB/s", uploadSpeed),
+            style = MaterialTheme.typography.bodySmall
+        )
         Spacer(modifier = Modifier.width(8.dp))
-        Text(text = String.format("Download Speed: %.2f KB/s", downloadSpeed), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = String.format("Download Speed: %.2f KB/s", downloadSpeed),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+fun HighlightedButton(onClick: () -> Unit) {
+    var isHighlighted by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isHighlighted = true
+        delay(3000) // Change the duration as needed
+        isHighlighted = false
+    }
+
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .padding(bottom = 4.dp)
+            .background(
+                if (isHighlighted) MaterialTheme.colorScheme.inversePrimary else Color.Transparent,
+                shape = CircleShape
+            )
+    ) {
+        Icon(
+            imageVector = Icons.Filled.FolderOpen,
+            contentDescription = "Open to choose local folder",
+        )
     }
 }
