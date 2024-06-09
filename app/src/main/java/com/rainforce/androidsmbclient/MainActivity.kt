@@ -1,11 +1,16 @@
 package com.rainforce.androidsmbclient
 
 import android.app.Activity
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.TrafficStats
 import android.net.Uri
 import android.os.Bundle
+import android.os.RemoteException
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -28,6 +33,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +62,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -76,6 +85,7 @@ import androidx.core.view.WindowCompat
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 import jcifs.smb.SmbFile
 import com.rainforce.androidsmbclient.model.SMBFileListViewModel
+import kotlinx.coroutines.delay
 import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -285,8 +295,6 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                         onClick = {
                             viewModel.cleanSMBServerProfile()
                             viewModel.retrieveSavedSMBServerProfile()
-                            //close the application
-//                            (context as? Activity)?.finish()
                         },
                         modifier = Modifier
                             .padding(bottom = 4.dp)
@@ -298,6 +306,8 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                         )
                     }
                 }
+
+                DownloadSpeedDisplay()
 
                 LazyColumn {
                     items(items.value) { file ->
@@ -539,4 +549,51 @@ private fun getUploadTempFilePathFromUri(context: Context, uri: Uri): String? {
         filePath = uri.path
     }
     return filePath
+}
+
+@Composable
+private fun DownloadSpeedDisplay() {
+
+    var downloadSpeed by remember { mutableDoubleStateOf(0.0) }
+    var uploadSpeed by remember { mutableDoubleStateOf(0.0) }
+
+    var previousTotalRxBytes by remember { mutableLongStateOf(TrafficStats.getTotalRxBytes()) }
+    var previousTotalTxBytes by remember { mutableLongStateOf(TrafficStats.getTotalTxBytes()) }
+
+    var previousTimeStamp by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            val currentTotalRxBytes = TrafficStats.getTotalRxBytes()
+            val currentTotalTxBytes = TrafficStats.getTotalTxBytes()
+
+            val currentTime = System.currentTimeMillis()
+
+            val dataReceived = currentTotalRxBytes - previousTotalRxBytes
+            val dataSent = currentTotalTxBytes - previousTotalTxBytes
+
+            val timeDifference = currentTime - previousTimeStamp
+
+            if (timeDifference > 0) {
+                downloadSpeed = ((dataReceived * 1000)/ (timeDifference * 1024)).toDouble()
+                uploadSpeed = ((dataSent * 1000) / (timeDifference * 1024)).toDouble()
+
+                previousTotalRxBytes = currentTotalRxBytes
+                previousTotalTxBytes = currentTotalTxBytes
+                previousTimeStamp = currentTime
+            }
+            delay(1000)
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = String.format("Upload Speed: %.2f KB/s", uploadSpeed), style = MaterialTheme.typography.bodySmall)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = String.format("Download Speed: %.2f KB/s", downloadSpeed), style = MaterialTheme.typography.bodySmall)
+    }
 }
