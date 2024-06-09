@@ -125,7 +125,9 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
     val downLoadUri = viewModel.downloadUri.observeAsState(initial = null)
     val localFiles = viewModel.localFileList.observeAsState(initial = emptyList())
 
-    val isShowDialogue by viewModel.shouldShowDialogue.observeAsState(initial = false)
+    val shouldShowDialogue by viewModel.shouldShowDialogue.observeAsState(initial = false)
+
+    val remoteServerErrorMessage = viewModel.remoteServerError.observeAsState(initial = "")
 
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -158,7 +160,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
         viewModel.retrieveSavedSMBServerProfile()
     }
 
-    if (isShowDialogue) {
+    if (shouldShowDialogue) {
         SMBProfileInputDialog(
             serverUrl = viewModel.smbServerUrl.value ?: "",
             userName = viewModel.smbUserName.value ?: "",
@@ -169,6 +171,11 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
             viewModel.saveSMBServerProfile(smbServerUrl, userName, password)
             viewModel.retrieveSavedSMBServerProfile()
             viewModel.refreshSMBFiles()
+        }
+    }
+    if (remoteServerErrorMessage.value.isNotEmpty()) {
+        InformationDialog(errorDescription = remoteServerErrorMessage.value) {
+            viewModel.cleanSMBServerProfile()
         }
     }
 
@@ -398,6 +405,24 @@ fun SMBFileEntryRow(
             }
         }
     }
+}
+
+@Composable
+fun InformationDialog(errorDescription: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK")
+            }
+        },
+        title = {
+            Text(text = "Error")
+        },
+        text = {
+            Text(text = errorDescription)
+        }
+    )
 }
 
 @Composable

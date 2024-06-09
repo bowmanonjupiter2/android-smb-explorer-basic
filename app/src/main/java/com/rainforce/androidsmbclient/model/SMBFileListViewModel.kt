@@ -44,6 +44,9 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     private val _remoteFileList = MutableLiveData<List<SmbFile>>(emptyList())
     val remoteFileList: LiveData<List<SmbFile>> get() = _remoteFileList
 
+    private val _remoteServerError = MutableLiveData<String>("")
+    val remoteServerError: LiveData<String> get() = _remoteServerError
+
     private val _localFileList = MutableLiveData<List<String>>(emptyList())
     val localFileList: LiveData<List<String>> get() = _localFileList
 
@@ -78,6 +81,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         securePreferences.saveEncryptedString("smbUserName", "")
         securePreferences.saveEncryptedString("smbPassword", "")
         _shouldShowDialogue.postValue(true)
+        _remoteServerError.postValue("")
     }
 
     fun retrieveLocalFileList(uri: Uri, context: Context) {
@@ -220,6 +224,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                 try {
                     _isInProgress.postValue(true)
                     _remoteFileList.postValue(emptyList())
+                    _remoteServerError.postValue("")
                     smbServer = SmbFile(smbServerUrl.value, authContext)
 
                     if (smbServer.exists()) {
@@ -230,13 +235,18 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
                         withContext(Dispatchers.Main) {
                             _remoteFileList.postValue(files)
                         }
+                    } else {
+                        _remoteServerError.postValue("Server not found")
                     }
                 } catch (mal: MalformedURLException) {
                     mal.printStackTrace()
+                    _remoteServerError.postValue(mal.message.toString())
                 } catch (smb: SmbException) {
                     smb.printStackTrace()
+                    _remoteServerError.postValue(smb.message.toString())
                 } catch (t: Throwable) {
                     t.printStackTrace()
+                    _remoteServerError.postValue(t.message.toString())
                 } finally {
                     smbServer?.close()
                     _isInProgress.postValue(false)
