@@ -38,8 +38,8 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     private val _smbPassword = MutableLiveData("")
     val smbPassword: LiveData<String> get() = _smbPassword
 
-    private val _downloadUri = MutableLiveData<Uri>(null)
-    val downloadUri: LiveData<Uri> get() = _downloadUri
+    private val _downloadUri = MutableLiveData<Uri?>(null)
+    val downloadUri: MutableLiveData<Uri?> get() = _downloadUri
 
     private val _remoteFileList = MutableLiveData<List<SmbFile>>(emptyList())
     val remoteFileList: LiveData<List<SmbFile>> get() = _remoteFileList
@@ -81,8 +81,15 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         securePreferences.saveEncryptedString("smbUserName", "")
         securePreferences.saveEncryptedString("smbPassword", "")
 
+        cleanEverything()
+    }
+
+    fun cleanEverything() {
+        _downloadUri.postValue(null)
         _remoteFileList.postValue(emptyList())
         _remoteServerError.postValue("")
+        _localFileList.postValue(emptyList())
+        _shouldShowDialogue.postValue(false)
     }
 
     fun retrieveLocalFileList(uri: Uri, context: Context) {
