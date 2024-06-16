@@ -75,6 +75,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
@@ -221,7 +222,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                 }
                 Row {
 
-                    HighlightedButton() {
+                    HighlightedButton {
                         pickFolderLauncher.launch(null)
                     }
 
@@ -318,11 +319,7 @@ fun SMBFileEntryRow(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            modifier = Modifier.padding(3.dp),
-            text = item.uncPath.toString().trimStart('\\'),
-            style = MaterialTheme.typography.bodySmall
-        )
+        DynamicShortenText(fullText = item.uncPath.toString().trimStart('\\'))
         Spacer(modifier = Modifier.weight(1f))
 
         if (isDownloadable && downloadUri != null) {
@@ -588,4 +585,23 @@ fun HighlightedButton(onClick: () -> Unit) {
             contentDescription = "Open to choose local folder",
         )
     }
+}
+
+
+
+@Composable
+fun DynamicShortenText(fullText: String) {
+    val maxTextLength = 45
+    val displayText = if (fullText.length > maxTextLength) {
+        fullText.take(maxTextLength) + "..."
+    } else {
+        fullText
+    }
+    Text(
+    modifier = Modifier.padding(3.dp),
+    maxLines = 1,
+    overflow = TextOverflow.Ellipsis,
+    text = displayText,
+    style = MaterialTheme.typography.bodySmall
+    )
 }

@@ -61,11 +61,14 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         _smbUserName.value = securePreferences.getEncryptedString("smbUserName")
         _smbPassword.value = securePreferences.getEncryptedString("smbPassword")
 
-        if (_smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty()) {
-            _shouldShowDialogue.postValue(true)
-        } else {
-            _shouldShowDialogue.postValue(false)
-            refreshSMBFiles()
+        when {
+            _smbServerUrl.value.isNullOrEmpty() || _smbUserName.value.isNullOrEmpty() || _smbPassword.value.isNullOrEmpty() -> {
+                _shouldShowDialogue.postValue(true)
+            }
+            else -> {
+                _shouldShowDialogue.postValue(false)
+                refreshSMBFiles()
+            }
         }
     }
 
@@ -84,7 +87,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         cleanEverything()
     }
 
-    fun cleanEverything() {
+    private fun cleanEverything() {
         _downloadUri.postValue(null)
         _remoteFileList.postValue(emptyList())
         _remoteServerError.postValue("")
@@ -128,16 +131,12 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
     ) {
         var isSuccess = false
         val contentResolver: ContentResolver = context.contentResolver
-        // Resolve the document tree URI to a DocumentFile
         val documentTree = DocumentFile.fromTreeUri(context, uri)
-        // Check if the documentTree is not null and is a directory
         if (documentTree != null && documentTree.isDirectory) {
-            // Create the new file in the directory
             val newFile = documentTree.createFile(
                 "application/octet-stream",
                 smbFile.uncPath.toString().trimStart('\\')
             )
-            // Write the file content to the new file
             if (newFile != null) {
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
