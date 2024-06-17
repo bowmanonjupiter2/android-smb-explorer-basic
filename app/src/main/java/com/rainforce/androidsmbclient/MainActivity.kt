@@ -134,6 +134,9 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
 
     val remoteServerErrorMessage = viewModel.remoteServerError.observeAsState(initial = "")
 
+    val backgroundColorGradient1 = if (isSystemInDarkTheme()) { Color.DarkGray } else { Color.LightGray }
+    val backgroundColorGradient2 = if (isSystemInDarkTheme()) { Color.Black } else { Color.Yellow }
+
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             val filePath: String? = uri?.let { getUploadTempFilePathFromUri(context, it) }
@@ -194,7 +197,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                 .systemBarsPadding()
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color.LightGray, Color.Yellow),
+                        colors = listOf(backgroundColorGradient1, backgroundColorGradient2),
                         start = androidx.compose.ui.geometry.Offset(0f, 0f),
                         end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
                     )
