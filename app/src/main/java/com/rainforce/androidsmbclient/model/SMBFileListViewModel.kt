@@ -236,7 +236,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
 
                     if (smbServer.exists()) {
                         val files = smbServer.listFiles().filterNot { smbFile ->
-                            smbFile.isHidden
+                            smbFile.isHidden || smbFile.isDirectory
                         }.sortedBy { it.uncPath.toString().lowercase() }
 
                         withContext(Dispatchers.Main) {
