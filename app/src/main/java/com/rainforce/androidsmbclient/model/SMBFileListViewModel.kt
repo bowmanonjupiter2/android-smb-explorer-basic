@@ -85,6 +85,7 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         securePreferences.saveEncryptedString("smbPassword", "")
 
         cleanEverything()
+        _shouldShowDialogue.postValue(true)
     }
 
     private fun cleanEverything() {
