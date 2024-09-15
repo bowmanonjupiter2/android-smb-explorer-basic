@@ -67,7 +67,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -134,8 +133,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
 
     val remoteServerErrorMessage = viewModel.remoteServerError.observeAsState(initial = "")
 
-    val backgroundColorGradient1 = if (isSystemInDarkTheme()) { Color.DarkGray } else { Color.LightGray }
-    val backgroundColorGradient2 = if (isSystemInDarkTheme()) { Color.Black } else { Color.Yellow }
+    val isLogOffConfirmationDialogVisible = remember { mutableStateOf(false) }
 
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -195,13 +193,7 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
             modifier = Modifier
                 .statusBarsPadding()
                 .systemBarsPadding()
-                .background(
-                    brush = Brush.linearGradient(
-                        colors = listOf(backgroundColorGradient1, backgroundColorGradient2),
-                        start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                        end = androidx.compose.ui.geometry.Offset(1000f, 1000f)
-                    )
-                )
+                .background(Color.White)
         ) {
             if (isInProgress) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -224,7 +216,6 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                     }
                 }
                 Row {
-
                     HighlightedButton {
                         pickFolderLauncher.launch(null)
                     }
@@ -257,8 +248,8 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
 
                     IconButton(
                         onClick = {
-                            viewModel.cleanSMBServerProfile()
-                            viewModel.retrieveSavedSMBServerProfile()
+                            isLogOffConfirmationDialogVisible.value = true
+
                         },
                         modifier = Modifier
                             .padding(bottom = 4.dp)
@@ -269,6 +260,20 @@ fun MainScreen(viewModel: SMBFileListViewModel) {
                             contentDescription = "Log off current SMB server"
                         )
                     }
+                }
+
+                if (isLogOffConfirmationDialogVisible.value) {
+                    ConfirmationDialog(
+                        title = "Log off",
+                        message = "Are you sure you want to log off?",
+                        onConfirm = {
+                            viewModel.cleanSMBServerProfile()
+                            viewModel.retrieveSavedSMBServerProfile()
+                        },
+                        onDismiss = {
+                            isLogOffConfirmationDialogVisible.value = false
+                        }
+                    )
                 }
 
                 DownloadSpeedDisplay()
@@ -567,15 +572,22 @@ private fun DownloadSpeedDisplay() {
 @Composable
 fun HighlightedButton(onClick: () -> Unit) {
     var isHighlighted by remember { mutableStateOf(false) }
+    var isLoopingHighlighted by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
-        isHighlighted = true
-        delay(3000) // Change the duration as needed
-        isHighlighted = false
+        while (isLoopingHighlighted) {
+            isHighlighted = true
+            delay(500)
+            isHighlighted = false
+            delay(500)// Change the duration as needed
+        }
     }
 
     IconButton(
-        onClick = onClick,
+        onClick = {
+            isLoopingHighlighted = false
+            onClick()
+        },
         modifier = Modifier
             .padding(bottom = 4.dp)
             .background(
@@ -591,7 +603,6 @@ fun HighlightedButton(onClick: () -> Unit) {
 }
 
 
-
 @Composable
 fun DynamicShortenText(fullText: String) {
     val maxTextLength = 45
@@ -601,10 +612,38 @@ fun DynamicShortenText(fullText: String) {
         fullText
     }
     Text(
-    modifier = Modifier.padding(3.dp),
-    maxLines = 1,
-    overflow = TextOverflow.Ellipsis,
-    text = displayText,
-    style = MaterialTheme.typography.bodySmall
+        modifier = Modifier.padding(3.dp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        text = displayText,
+        style = MaterialTheme.typography.bodySmall
+    )
+}
+
+@Composable
+fun ConfirmationDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Confirm")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        title = {
+            Text(text = title)
+        },
+        text = {
+            Text(text = message)
+        }
     )
 }
