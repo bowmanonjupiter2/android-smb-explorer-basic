@@ -84,11 +84,11 @@ class SMBFileListViewModel(application: Application) : AndroidViewModel(applicat
         securePreferences.saveEncryptedString("smbUserName", "")
         securePreferences.saveEncryptedString("smbPassword", "")
 
-        cleanEverything()
+        cleanUp()
         _shouldShowDialogue.postValue(true)
     }
 
-    private fun cleanEverything() {
+    private fun cleanUp() {
         _downloadUri.postValue(null)
         _remoteFileList.postValue(emptyList())
         _remoteServerError.postValue("")
