@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,8 +44,7 @@ import com.rainforce.androidsmbclient.model.SambaExplorerViewModel
 import com.rainforce.androidsmbclient.ui.components.ConfirmationDialog
 import com.rainforce.androidsmbclient.ui.components.DownloadSpeedBar
 import com.rainforce.androidsmbclient.ui.components.HighlightedButton
-import com.rainforce.androidsmbclient.ui.components.InformationDialog
-import com.rainforce.androidsmbclient.ui.components.SMBLoginDialog
+import com.rainforce.androidsmbclient.ui.components.LoginDialog
 import com.rainforce.androidsmbclient.util.getUploadTempFilePathFromUri
 import java.io.File
 
@@ -58,13 +59,16 @@ fun MainView(viewModel: SambaExplorerViewModel) {
 
     val downloadURI = viewModel.downloadURI.observeAsState(initial = null)
 
-    val remoteError = viewModel.remoteError.observeAsState(initial = "")
-
     val isInProgress by viewModel.isInProgress.observeAsState(initial = false)
 
     val shouldShowDialogue by viewModel.shouldShowDialogue.observeAsState(initial = false)
 
     val isLogOffConfirmationDialogVisible = remember { mutableStateOf(false) }
+
+    val isPurgeConfirmationDialogVisible = remember { mutableStateOf(false) }
+
+    var launchEffectToggle by remember { mutableStateOf(false) }
+
 
     val pickFileLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -93,27 +97,21 @@ fun MainView(viewModel: SambaExplorerViewModel) {
             }
         }
 
-    LaunchedEffect(Unit) {
-        viewModel.retrieveProfile()
+    LaunchedEffect(launchEffectToggle) {
+        viewModel.retrieveSavedProfileIfAny()
     }
 
     if (shouldShowDialogue) {
-        SMBLoginDialog(
+        LoginDialog(
             serverURL = viewModel.serverURL.value ?: "",
             userName = viewModel.userName.value ?: "",
             password = viewModel.password.value ?: "",
+            statusMsg = viewModel.remoteError.value?: "",
             onDismiss = {
                 (context as? Activity)?.finish()
             }) { smbServerUrl, userName, password ->
             viewModel.saveProfile(smbServerUrl, userName, password)
-            viewModel.retrieveProfile()
-            viewModel.getRemoteFiles()
-        }
-    }
-
-    if (remoteError.value.isNotEmpty()) {
-        InformationDialog(errorDescription = remoteError.value) {
-            viewModel.deleteProfile()
+            launchEffectToggle = !launchEffectToggle
         }
     }
 
@@ -139,7 +137,7 @@ fun MainView(viewModel: SambaExplorerViewModel) {
                 Row {
                     if (downloadURI.value == null) {
                         Text(
-                            text = "select device folder to download ...",
+                            text = "select device folder for download option ...",
                             style = TextStyle(fontWeight = FontWeight.Normal, fontSize = 12.sp),
                             modifier = Modifier
                                 .padding(bottom = 4.dp)
@@ -192,6 +190,21 @@ fun MainView(viewModel: SambaExplorerViewModel) {
                             contentDescription = "Log off current SMB server"
                         )
                     }
+
+                    IconButton(
+                        onClick = {
+                            isPurgeConfirmationDialogVisible.value = true
+
+                        },
+                        modifier = Modifier
+                            .padding(bottom = 4.dp)
+                            .align(Alignment.CenterVertically)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Delete your profile for good"
+                        )
+                    }
                 }
 
                 if (isLogOffConfirmationDialogVisible.value) {
@@ -200,11 +213,24 @@ fun MainView(viewModel: SambaExplorerViewModel) {
                         message = "Are you sure you want to log off?",
                         onConfirm = {
                             isLogOffConfirmationDialogVisible.value = false
-                            viewModel.deleteProfile()
-                            viewModel.retrieveProfile()
+                            viewModel.logoff()
                         },
                         onDismiss = {
                             isLogOffConfirmationDialogVisible.value = false
+                        }
+                    )
+                }
+
+                if (isPurgeConfirmationDialogVisible.value) {
+                    ConfirmationDialog(
+                        title = "Delete profile",
+                        message = "Are you sure you want to delete your profile",
+                        onConfirm = {
+                            isPurgeConfirmationDialogVisible.value = false
+                            viewModel.deleteProfile()
+                        },
+                        onDismiss = {
+                            isPurgeConfirmationDialogVisible.value = false
                         }
                     )
                 }

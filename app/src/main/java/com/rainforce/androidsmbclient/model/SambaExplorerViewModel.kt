@@ -59,47 +59,63 @@ class SambaExplorerViewModel(application: Application) : AndroidViewModel(applic
     val shouldShowDialogue get() = _shouldShowDialogue
 
 
-    fun retrieveProfile() {
-
-        _serverURL.value = securePreferences.getEncryptedString("smbServerUrl")
-        _userName.value = securePreferences.getEncryptedString("smbUserName")
-        _password.value = securePreferences.getEncryptedString("smbPassword")
-
-        when {
-            _serverURL.value.isNullOrEmpty() || _userName.value.isNullOrEmpty() || _password.value.isNullOrEmpty() -> {
-                _shouldShowDialogue.postValue(true)
+    fun retrieveSavedProfileIfAny() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _serverURL.postValue(securePreferences.getEncryptedString(SERVER_URL))
+                _userName.postValue(securePreferences.getEncryptedString(USER_NAME))
+                _password.postValue(securePreferences.getEncryptedString(PASSWORD))
             }
-            else -> {
-                _shouldShowDialogue.postValue(false)
-                getRemoteFiles()
+            withContext(Dispatchers.Main) {
+                when {
+                    serverURL.value.isNullOrEmpty() || userName.value.isNullOrEmpty() || password.value.isNullOrEmpty() -> {
+                        _shouldShowDialogue.postValue(true)
+                    }
+                    else -> {
+                        _shouldShowDialogue.postValue(false)
+                        getRemoteFiles()
+                    }
+                }
             }
         }
     }
 
     fun saveProfile(smbServerUrl: String, smbUserName: String, smbPassword: String) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                securePreferences.saveEncryptedString(SERVER_URL, smbServerUrl)
+                securePreferences.saveEncryptedString(USER_NAME, smbUserName)
+                securePreferences.saveEncryptedString(PASSWORD, smbPassword)
+            }
+        }
+    }
 
-        securePreferences.saveEncryptedString("smbServerUrl", smbServerUrl)
-        securePreferences.saveEncryptedString("smbUserName", smbUserName)
-        securePreferences.saveEncryptedString("smbPassword", smbPassword)
+    fun logoff() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _remoteFiles.postValue(emptyList())
+                _password.postValue("")
+                securePreferences.saveEncryptedString(PASSWORD, "")
+
+                retrieveSavedProfileIfAny()
+            }
+        }
     }
 
     fun deleteProfile() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                _remoteFiles.postValue(emptyList())
+                _serverURL.postValue("")
+                _userName.postValue("")
+                _password.postValue("")
+                securePreferences.saveEncryptedString(SERVER_URL, "")
+                securePreferences.saveEncryptedString(USER_NAME, "")
+                securePreferences.saveEncryptedString(PASSWORD, "")
 
-        securePreferences.saveEncryptedString("smbServerUrl", "")
-        securePreferences.saveEncryptedString("smbUserName", "")
-        securePreferences.saveEncryptedString("smbPassword", "")
-
-        cleanUp()
-
-        _shouldShowDialogue.postValue(true)
-    }
-
-    private fun cleanUp() {
-        _downloadURI.postValue(null)
-        _remoteFiles.postValue(emptyList())
-        _remoteError.postValue("")
-        _localFiles.postValue(emptyList())
-        _shouldShowDialogue.postValue(false)
+                retrieveSavedProfileIfAny()
+            }
+        }
     }
 
     fun getLocalFiles(uri: Uri, context: Context) {
@@ -250,22 +266,26 @@ class SambaExplorerViewModel(application: Application) : AndroidViewModel(applic
                             _remoteFiles.postValue(files)
                         }
                     } else {
-                        _remoteError.postValue("Server not found")
+                        handleRemoteError("Server not found")
                     }
-                } catch (mal: MalformedURLException) {
-                    mal.printStackTrace()
-                    _remoteError.postValue(mal.message.toString())
-                } catch (smb: SmbException) {
-                    smb.printStackTrace()
-                    _remoteError.postValue(smb.message.toString())
                 } catch (t: Throwable) {
-                    t.printStackTrace()
-                    _remoteError.postValue(t.message.toString())
+                    handleRemoteError(t.message.toString())
                 } finally {
                     smbServer?.close()
                     _isInProgress.postValue(false)
                 }
             }
         }
+    }
+
+    private fun handleRemoteError(errorMsg: String) {
+        logoff()
+        _remoteError.postValue(errorMsg)
+    }
+
+    companion object {
+        const val SERVER_URL = "serverURL"
+        const val USER_NAME = "userName"
+        const val PASSWORD = "password"
     }
 }

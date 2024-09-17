@@ -5,15 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import com.rainforce.androidsmbclient.model.SambaExplorerViewModel
-import com.rainforce.androidsmbclient.ui.MainView
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 
 
@@ -28,26 +21,12 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AndroidSMBClientTheme {
-                SMBExplorerApp(viewModel)
+                AppNavigation(viewModel)
             }
         }
     }
 }
 
-@Composable
-fun SMBExplorerApp(viewModel: SambaExplorerViewModel) {
 
-    val context = LocalContext.current
-    val isDarkTheme = isSystemInDarkTheme()
-    val colorScheme = if (isDarkTheme) {
-        dynamicDarkColorScheme(context)
-    } else {
-        dynamicLightColorScheme(context)
-    }
-
-    MaterialTheme(colorScheme = colorScheme) {
-        MainView(viewModel)
-    }
-}
 
 
