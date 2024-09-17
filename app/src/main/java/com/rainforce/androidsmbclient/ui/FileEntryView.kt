@@ -20,13 +20,13 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.rainforce.androidsmbclient.model.SMBFileListViewModel
+import com.rainforce.androidsmbclient.model.SambaExplorerViewModel
 import com.rainforce.androidsmbclient.ui.components.DynamicShortenText
 import jcifs.smb.SmbFile
 
 @Composable
 fun SMBFileEntryRow(
-    viewModel: SMBFileListViewModel,
+    viewModel: SambaExplorerViewModel,
     item: SmbFile,
     isDownloadable: Boolean = false,
     isDownloaded: Boolean = false,
@@ -82,7 +82,7 @@ fun SMBFileEntryRow(
                             "Downloading " + item.uncPath.toString().trimStart('\\'),
                             Toast.LENGTH_SHORT
                         ).show()
-                        viewModel.downloadFileToUri(context, downloadUri, item) { result ->
+                        viewModel.downloadFile(context, downloadUri, item) { result ->
                             if (result) {
                                 Toast.makeText(
                                     context,

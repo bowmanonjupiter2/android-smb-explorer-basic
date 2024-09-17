@@ -12,14 +12,14 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
-import com.rainforce.androidsmbclient.model.SMBFileListViewModel
+import com.rainforce.androidsmbclient.model.SambaExplorerViewModel
 import com.rainforce.androidsmbclient.ui.MainView
 import com.rainforce.androidsmbclient.ui.theme.AndroidSMBClientTheme
 
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: SMBFileListViewModel by viewModels()
+    private val viewModel: SambaExplorerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SMBExplorerApp(viewModel: SMBFileListViewModel) {
+fun SMBExplorerApp(viewModel: SambaExplorerViewModel) {
 
     val context = LocalContext.current
     val isDarkTheme = isSystemInDarkTheme()

@@ -33,13 +33,13 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun SMBLoginDialog(
-    serverUrl: String,
+    serverURL: String,
     userName: String,
     password: String,
     onDismiss: () -> Unit,
     onConfirm: (smbServerUrl: String, userName: String, password: String) -> Unit,
 ) {
-    var enteredServerUrl by remember { mutableStateOf(serverUrl) }
+    var enteredServerUrl by remember { mutableStateOf(serverURL) }
     var enteredUserName by remember { mutableStateOf(userName) }
     var enteredPassword by remember { mutableStateOf(password) }
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -63,7 +63,11 @@ fun SMBLoginDialog(
             }
         },
         title = {
-            Text(text = "Login SMB Server", style = TextStyle(fontSize = 14.sp))
+            Column {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = "Login to Samba Server", style = TextStyle(fontSize = 14.sp))
+                Text(text = "* use port number i.e.445 if connecting to internet samba server", style = TextStyle(fontSize = 10.sp))
+            }
         },
         text = {
             Column {
@@ -72,11 +76,11 @@ fun SMBLoginDialog(
                     onValueChange = { enteredServerUrl = it },
                     placeholder = {
                         Text(
-                            text = "SMB server url",
-                            style = TextStyle(fontSize = 12.sp)
+                            text = "Samba Server Url (starts with smb://)",
+                            style = TextStyle(fontSize = 10.sp)
                         )
                     },
-                    textStyle = TextStyle(fontSize = 12.sp),
+                    textStyle = TextStyle(fontSize = 10.sp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -87,8 +91,8 @@ fun SMBLoginDialog(
                 TextField(
                     value = enteredUserName,
                     onValueChange = { enteredUserName = it },
-                    placeholder = { Text(text = "Username", style = TextStyle(fontSize = 12.sp)) },
-                    textStyle = TextStyle(fontSize = 12.sp),
+                    placeholder = { Text(text = "Username", style = TextStyle(fontSize = 10.sp)) },
+                    textStyle = TextStyle(fontSize = 10.sp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp)
@@ -98,8 +102,8 @@ fun SMBLoginDialog(
                 TextField(
                     value = enteredPassword,
                     onValueChange = { enteredPassword = it },
-                    placeholder = { Text(text = "Password", style = TextStyle(fontSize = 12.sp)) },
-                    textStyle = TextStyle(fontSize = 12.sp),
+                    placeholder = { Text(text = "Password", style = TextStyle(fontSize = 10.sp)) },
+                    textStyle = TextStyle(fontSize = 10.sp),
                     visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions.Default.copy(
                         imeAction = ImeAction.Done
